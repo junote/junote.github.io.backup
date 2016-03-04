@@ -1,0 +1,174 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <title>UNIX环境高级编程中的apue.h错误 | Junote</title>
+  <meta name="author" content="Jun">
+  
+  <meta name="description" content="最近在读 Richard Stevens的大作《UNIX环境高级编程》，相信很多初读此书的人都会与我一样遇到这个问题，编译书中的程序实例时会出现问题，提示 “错误：apue.h：没有那个文件或目录”。
+apue.h是作者自定义的一个头文件，并不是Unix/Linux系统自带的，此头文件包括了Unix">
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <meta property="og:title" content="UNIX环境高级编程中的apue.h错误"/>
+  <meta property="og:site_name" content="Junote"/>
+
+  
+    <meta property="og:image" content="undefined"/>
+  
+
+  
+    <link rel="alternative" href="/atom.xml" title="Junote" type="application/atom+xml">
+  
+  
+    <link href="/favicon.png" rel="icon">
+  
+  
+  <link rel="stylesheet" href="/css/bootstrap.min.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/css/font-awesome.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/css/style.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/css/highlight.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/css/google-fonts.css" media="screen" type="text/css">
+  <link rel="stylesheet" href="/css/responsive.css" media="screen" type="text/css">  
+  <link rel="stylesheet" href="/css/sidenav.css" media="screen" type="text/css">  
+  <!--[if lt IE 9]><script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+
+  <script src="/js/jquery-2.0.3.min.js"></script>
+
+  <!-- analytics -->
+  
+
+</head>
+
+<body id="body" data-spy="scroll" data-target=".toc">
+  <div class="container" id="container">
+	<div class="content">
+	  <div class="page-header">		
+  <h1><a class="brand" href="/">Junote</a><span class="split"></span><span class="title">UNIX环境高级编程中的apue.h错误</span><span class="date" id="title-date"><i class="fa fa-clock-o"></i> 2016-03-03</span></h1>
+</div>		
+
+<div class="row page">
+  <!-- cols -->	
+  
+  
+
+  
+	<div class="col-md-12">
+	  
+
+	  <!-- content -->
+	  <p>最近在读 Richard Stevens的大作《UNIX环境高级编程》，相信很多初读此书的人都会与我一样遇到这个问题，编译书中的程序实例时会出现问题，提示 “错误：apue.h：没有那个文件或目录”。</p>
+<p>apue.h是作者自定义的一个头文件，并不是Unix/Linux系统自带的，此头文件包括了Unix程序所需的常用头文件及作者Richard自己写的出错处理函数。所以在默认情况下，gcc在编译时是读不到这个头文件的。</p>
+<ol>
+<li>先在这个网站<a href="http://www.apuebook.com/" target="_blank" rel="external">APUE</a>下载tar.gz格式的源码包，然后解压至某个目录，比如说/home/xxx/下.</li>
+<li>进入目录<code>apue.2e</code>，把文件 <code>Make.defines.linux</code> 中的 <code>WKDIR=/home/xxx/apue.2e</code> 修改为 <code>WKDIR=/home/xxx/apue.2e</code>.</li>
+<li>进入<code>apue.2e</code>目录下的<code>std</code>目录，打开<code>linux.mk</code>，将里面的nawk全部替换为awk.</li>
+<li>回到 <code>/home/xxx/apue.2e</code> 目录在终端中输入 “make” .</li>
+<li>把 <code>/home/xxx/apue.2e/inlcude</code> 目录下的 <code>apue.h</code> 文件和位于 <code>/home/xxx/apue.2e/lib</code> 目录下的 <code>error.c</code>文件都复制到 <code>/usr/include</code>目录下，<code>apue.2e/lib/libapue.a</code> 到<code>/usr/lib/</code>和 <code>/usr/lib64</code>下。</li>
+<li>编辑<code>/usr/include/apue.h</code> 文件, 在最后一行 #endif 前面添加一行 <pre><code>#include “error.c”
+</code></pre></li>
+</ol>
+<p>通常会遇到下面几个问题。</p>
+<ol>
+<li>找不到”nawk“， 进入<code>apue.2e/std</code> 目录，编辑<code>linux.mk</code>。修改里面所有的nawk为awk。</li>
+<li><code>stropts.h</code>找不到的情况，则下载glibc-2.11，解压缩在<code>apue.2e</code>里.<pre><code>cp ./glibc-2.11/streams/stropts.h /usr/include 
+cp ./glibc-2.11/bits/stropts.h /usr/include/bits 
+cp ./glibc-2.11/sysdeps/x86_64/bits/xtitypes.h /usr/include/bits 
+</code></pre></li>
+<li><code>ARG_MAX</code>未定义, 在<code>apue.2e/include/apue.h</code>中添加一行<pre><code>#define ARG_MAX 4096
+</code></pre>打开<code>apue.2e/threadctl/getenv1.c</code> 和<code>apue.2e/threadctl/getenv3.c</code>，添加一行：<pre><code>#include “apue.h”        
+</code></pre></li>
+<li><code>/usr/include/bits/timex.h:31:7: 错误</code>, 把<code>ipp.h</code>文件里的status改成其他名称，比如Status。<pre><code>#define status u.st
+</code></pre>在<code>printd.c</code>的第977行中更改成Status。<pre><code>i = ntohs(hp-&gt;status);
+</code></pre></li>
+</ol>
+	  
+
+	  <div>
+  		<center>
+		  <div class="pagination">
+<ul class="pagination">
+	
+	
+	
+	
+	
+	
+		
+			
+			
+		
+	
+		
+	
+		
+	
+		
+	
+		
+	
+		
+	
+		
+	
+		
+			
+			
+			
+		
+	
+	
+	
+		<li class="prev disabled"><a><i class="fa fa-arrow-circle-o-left"></i>prev</a></li>
+	
+	<li><a href="/"><i class="fa fa-archive"></i>Home</a></li>
+	
+		<li class="next"><a href="/2016/01/29/u-boot/" class="alignright next">next<i class="fa fa-arrow-circle-o-right"></i></a></li>
+	
+</ul>
+</div>
+
+		</center>
+	  </div>
+	  
+	</div> <!-- col-md-9/col-md-12 -->
+	
+  </div><!-- row -->
+
+	</div>
+  </div>
+  <div class="container-narrow">
+	<footer> <p>
+  &copy; 2016 Jun
+  
+      with help from <a href="http://zespia.tw/hexo/" target="_blank">Hexo</a> and <a href="http://getbootstrap.com/" target="_blank">Twitter Bootstrap</a>. Theme by <a href="http://github.com/wzpan/hexo-theme-wixo/">Wixo</a>.    
+</p> </footer>
+  </div> <!-- container-narrow -->
+  
+<a id="gotop" href="#">   
+  <span>▲</span> 
+</a>
+
+<script src="/js/jquery.imagesloaded.min.js"></script>
+<script src="/js/gallery.js"></script>
+<script src="/js/bootstrap.min.js"></script>
+<script src="/js/jquery.tableofcontents.min.js"></script>
+<script src="/js/tocgenerator.min.js"></script>
+<script src="/js/main.js"></script>
+
+
+
+
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+(function($){
+  $('.fancybox').fancybox();
+})(jQuery);
+</script>
+
+
+</body>
+</html>

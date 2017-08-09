@@ -1,3 +1,0 @@
-[test]
-[tse]
-df*eer*
